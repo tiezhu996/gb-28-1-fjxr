@@ -3,6 +3,7 @@ import {
   ANSWER_RESULT,
   DIFFICULTY,
   EXAM_STATUS,
+  EXTENSION_STATUS,
   QUESTION_TYPES,
   RECORD_STATUS,
   ROLES,
@@ -96,6 +97,22 @@ export function recordStatusColor(s: string): string {
     case RECORD_STATUS.IN_PROGRESS: return 'orange';
     case RECORD_STATUS.SUBMITTED: return 'blue';
     case RECORD_STATUS.GRADED: return 'green';
+    default: return 'gray';
+  }
+}
+
+export function extensionStatusText(s: string): string {
+  switch (s) {
+    case EXTENSION_STATUS.ACTIVE: return '有效';
+    case EXTENSION_STATUS.REVOKED: return '已撤销';
+    default: return s;
+  }
+}
+
+export function extensionStatusColor(s: string): string {
+  switch (s) {
+    case EXTENSION_STATUS.ACTIVE: return 'green';
+    case EXTENSION_STATUS.REVOKED: return 'gray';
     default: return 'gray';
   }
 }

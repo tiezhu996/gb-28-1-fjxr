@@ -102,7 +102,43 @@ export interface ExamRecord {
   cheat_count: number;
   auto_submitted: boolean;
   questions: AttemptQuestion[];
+  // 个别考生补时快照
+  extra_minutes: number;
+  duration_min: number;
+  deadline_at: string;
+  personal_end_at: string;
   created_at: string;
+}
+
+// 个别考生补时记录（教师视角）。
+export interface ExamExtension {
+  id: string;
+  exam_id: string;
+  exam_title: string;
+  student_id: string;
+  student_name: string;
+  extra_minutes: number;
+  reason: string;
+  status: string;
+  status_text: string;
+  granted_by: string;
+  revoked_by?: string;
+  revoked_at?: string | null;
+  created_at: string;
+}
+
+// 学生查询本人补时记录响应（含个人截止时间）。
+export interface MyExtension {
+  exam_id: string;
+  exam_title: string;
+  extra_minutes: number;
+  status: string;
+  status_text: string;
+  duration_min: number;
+  personal_end_at: string;
+  has_in_progress: boolean;
+  started_at?: string;
+  deadline_at?: string;
 }
 
 export interface WrongBook {

@@ -25,6 +25,12 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database) error {
 		{"exams", bson.D{{Key: "status", Value: 1}, {Key: "subject", Value: 1}}, nil},
 		{"exam_records", bson.D{{Key: "exam_id", Value: 1}, {Key: "student_id", Value: 1}}, nil},
 		{"exam_records", bson.D{{Key: "status", Value: 1}}, nil},
+		// 个别考生补时：一名考生一场考试只能有一条有效（active）记录；撤销后可重新登记。
+		// 部分唯一索引仅约束 status=active，重复/并发登记由该索引兜底冲突。
+		{"exam_extensions", bson.D{{Key: "exam_id", Value: 1}, {Key: "student_id", Value: 1}}, options.Index().
+			SetUnique(true).
+			SetPartialFilterExpression(bson.M{"status": "active"})},
+		{"exam_extensions", bson.D{{Key: "exam_id", Value: 1}, {Key: "created_at", Value: -1}}, nil},
 		{"wrong_books", bson.D{{Key: "student_id", Value: 1}, {Key: "question_id", Value: 1}}, options.Index().SetUnique(true)},
 		{"audit_logs", bson.D{{Key: "created_at", Value: -1}}, nil},
 		{"audit_logs", bson.D{{Key: "module", Value: 1}, {Key: "action", Value: 1}}, nil},

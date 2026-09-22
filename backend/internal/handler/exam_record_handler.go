@@ -44,7 +44,7 @@ func (h *ExamRecordHandler) Start(c *gin.Context) {
 		Error(c, err)
 		return
 	}
-	Success(c, dto.ToRecordResponse(rec))
+	Success(c, h.svc.BuildResponse(c.Request.Context(), rec))
 }
 
 // Submit 学生提交答卷。
@@ -64,7 +64,7 @@ func (h *ExamRecordHandler) Submit(c *gin.Context) {
 		Error(c, err)
 		return
 	}
-	SuccessMessage(c, constants.MsgRecordSubmitSuccess, dto.ToRecordResponse(rec))
+	SuccessMessage(c, constants.MsgRecordSubmitSuccess, h.svc.BuildResponse(c.Request.Context(), rec))
 }
 
 // AutoSubmit 超时自动提交（教师/管理员触发或定时任务）。
@@ -79,7 +79,7 @@ func (h *ExamRecordHandler) AutoSubmit(c *gin.Context) {
 		Error(c, err)
 		return
 	}
-	Success(c, dto.ToRecordResponse(rec))
+	Success(c, h.svc.BuildResponse(c.Request.Context(), rec))
 }
 
 // Grade 教师批改主观题。
@@ -99,7 +99,7 @@ func (h *ExamRecordHandler) Grade(c *gin.Context) {
 		Error(c, err)
 		return
 	}
-	SuccessMessage(c, constants.MsgRecordGradedSuccess, dto.ToRecordResponse(rec))
+	SuccessMessage(c, constants.MsgRecordGradedSuccess, h.svc.BuildResponse(c.Request.Context(), rec))
 }
 
 // Get 查询单个考试记录。
@@ -114,7 +114,7 @@ func (h *ExamRecordHandler) Get(c *gin.Context) {
 		Error(c, err)
 		return
 	}
-	Success(c, dto.ToRecordResponse(rec))
+	Success(c, h.svc.BuildResponse(c.Request.Context(), rec))
 }
 
 // ListMine 学生查询自己的考试记录。
@@ -131,7 +131,7 @@ func (h *ExamRecordHandler) ListMine(c *gin.Context) {
 	}
 	items := make([]dto.RecordResponse, 0, len(list))
 	for _, r := range list {
-		items = append(items, dto.ToRecordResponse(r))
+		items = append(items, h.svc.BuildResponse(c.Request.Context(), r))
 	}
 	PageResult(c, items, total, page.Page, page.PageSize)
 }
@@ -155,7 +155,7 @@ func (h *ExamRecordHandler) ListByExam(c *gin.Context) {
 	}
 	items := make([]dto.RecordResponse, 0, len(list))
 	for _, r := range list {
-		items = append(items, dto.ToRecordResponse(r))
+		items = append(items, h.svc.BuildResponse(c.Request.Context(), r))
 	}
 	PageResult(c, items, total, page.Page, page.PageSize)
 }

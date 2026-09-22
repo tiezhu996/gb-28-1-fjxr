@@ -65,6 +65,12 @@ func (f *fakeUserRepo) FindByEmail(_ context.Context, email string) (*model.User
 func (f *fakeUserRepo) List(_ context.Context, filter bson.M, page, pageSize int64) ([]*model.User, int64, error) {
 	var out []*model.User
 	for _, u := range f.users {
+		if role, ok := filter["role"].(string); ok && role != "" && u.Role != role {
+			continue
+		}
+		if status, ok := filter["status"].(string); ok && status != "" && u.Status != status {
+			continue
+		}
 		out = append(out, u)
 	}
 	return out, int64(len(out)), nil

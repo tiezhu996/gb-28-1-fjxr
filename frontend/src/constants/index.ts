@@ -71,6 +71,18 @@ export const WRONG_BOOK_STATUS = {
   RESOLVED: 'resolved',
 } as const;
 
+// 个别考生补时记录状态（与后端 constants.ExtensionStatus* 对应）。
+export const EXTENSION_STATUS = {
+  ACTIVE: 'active',
+  REVOKED: 'revoked',
+} as const;
+
+export type ExtensionStatus = (typeof EXTENSION_STATUS)[keyof typeof EXTENSION_STATUS];
+
+// 补时分钟数上下限（业务规则：补时限于五至六十分钟）。
+export const EXTENSION_MIN_MINUTES = 5;
+export const EXTENSION_MAX_MINUTES = 60;
+
 export const QUESTION_STATUS = {
   DRAFT: 'draft',
   PUBLISHED: 'published',

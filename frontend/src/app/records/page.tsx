@@ -23,6 +23,8 @@ export default function RecordsPage() {
   const columns: Column<ExamRecord>[] = [
     { key: 'exam_title', title: '考试', render: (r) => <span className="font-medium">{r.exam_title}</span> },
     { key: 'status', title: '状态', render: (r) => <StatusBadge text={recordStatusText(r.status)} color={recordStatusColor(r.status)} /> },
+    { key: 'extra_minutes', title: '补时', render: (r) => r.extra_minutes > 0 ? <span className="font-medium text-brand-700">+{r.extra_minutes}分</span> : <span className="text-gray-300">-</span> },
+    { key: 'deadline_at', title: '个人截止', render: (r) => <span className="text-xs text-gray-500">{formatDateTime(r.deadline_at || r.personal_end_at)}</span> },
     { key: 'objective_score', title: '客观题分', render: (r) => <span>{r.objective_score}</span> },
     { key: 'final_score', title: '最终分', render: (r) => <span className="font-semibold">{r.final_score || '-'}</span> },
     { key: 'cheat_count', title: '切屏次数', render: (r) => <span className={r.cheat_count > 0 ? 'text-red-600' : ''}>{r.cheat_count}</span> },

@@ -59,6 +59,7 @@ func main() {
 	questionRepo := repository.NewMongoQuestionRepository(db.DB)
 	examRepo := repository.NewMongoExamRepository(db.DB)
 	recordRepo := repository.NewMongoExamRecordRepository(db.DB)
+	extensionRepo := repository.NewMongoExamExtensionRepository(db.DB)
 	wrongBookRepo := repository.NewMongoWrongBookRepository(db.DB)
 	auditRepo := repository.NewMongoAuditRepository(db.DB)
 
@@ -66,6 +67,8 @@ func main() {
 	questionSvc := service.NewQuestionService(questionRepo, util.Logger)
 	examSvc := service.NewExamService(examRepo, questionSvc, util.Logger)
 	recordSvc := service.NewExamRecordService(recordRepo, examSvc, util.Logger)
+	recordSvc.SetExtensionRepo(extensionRepo)
+	extensionSvc := service.NewExamExtensionService(extensionRepo, examSvc, userSvc, recordSvc, util.Logger)
 	wrongBookSvc := service.NewWrongBookService(wrongBookRepo, questionSvc, recordSvc, util.Logger)
 	auditSvc := service.NewAuditService(auditRepo, util.Logger)
 
@@ -76,12 +79,13 @@ func main() {
 	}
 
 	hs := &router.Handlers{
-		User:       handler.NewUserHandler(userSvc, util.Logger),
-		Question:   handler.NewQuestionHandler(questionSvc, util.Logger),
-		Exam:       handler.NewExamHandler(examSvc, util.Logger),
-		ExamRecord: handler.NewExamRecordHandler(recordSvc, util.Logger),
-		WrongBook:  handler.NewWrongBookHandler(wrongBookSvc, util.Logger),
-		Audit:      handler.NewAuditHandler(auditSvc, util.Logger),
+		User:          handler.NewUserHandler(userSvc, util.Logger),
+		Question:      handler.NewQuestionHandler(questionSvc, util.Logger),
+		Exam:          handler.NewExamHandler(examSvc, util.Logger),
+		ExamRecord:    handler.NewExamRecordHandler(recordSvc, util.Logger),
+		ExamExtension: handler.NewExamExtensionHandler(extensionSvc, util.Logger),
+		WrongBook:     handler.NewWrongBookHandler(wrongBookSvc, util.Logger),
+		Audit:         handler.NewAuditHandler(auditSvc, util.Logger),
 	}
 
 	engine := gin.New()

@@ -40,6 +40,14 @@ const (
 	CodeRecordExpired     = 5003 // 考试记录已超时
 	CodeRecordAlreadyDone = 5004 // 考试记录已提交
 
+	// 个别考生补时模块
+	CodeExtensionNotFound   = 5101 // 补时记录不存在
+	CodeExtensionExists     = 5102 // 该考生本场考试已有有效补时记录（重复/并发）
+	CodeExtensionMinutesErr = 5103 // 补时分钟数越界（不在 5~60 分钟）
+	CodeExtensionFrozen     = 5104 // 开考后补时冻结，不可撤销
+	CodeExtensionExamState  = 5105 // 试卷状态不允许登记补时（仅已发布/进行中且交卷前）
+	CodeExtensionStudentErr = 5106 // 补时目标考生不存在或角色不是学生
+
 	// 错题本模块
 	CodeWrongBookNotFound = 6001 // 错题本条目不存在
 	CodeWrongBookExists   = 6002 // 错题已存在错题本
@@ -103,6 +111,18 @@ func ErrorCodeText(code int) string {
 		return "考试记录已超时"
 	case CodeRecordAlreadyDone:
 		return "考试记录已提交"
+	case CodeExtensionNotFound:
+		return "补时记录不存在"
+	case CodeExtensionExists:
+		return "该考生本场考试已有有效补时记录"
+	case CodeExtensionMinutesErr:
+		return "补时分钟数必须在 5~60 分钟之间"
+	case CodeExtensionFrozen:
+		return "开考后补时已冻结，不可撤销"
+	case CodeExtensionExamState:
+		return "当前试卷状态不允许登记补时"
+	case CodeExtensionStudentErr:
+		return "补时目标考生不存在或不是学生"
 	case CodeWrongBookNotFound:
 		return "错题本条目不存在"
 	case CodeWrongBookExists:

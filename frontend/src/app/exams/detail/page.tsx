@@ -4,11 +4,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { examApi } from '@/api/exam';
 import { recordApi } from '@/api/record';
+import { extensionApi } from '@/api/extension';
+import type { MyExtension } from '@/types';
 import { useExamStore } from '@/stores/examStore';
 import { questionApi } from '@/api/question';
 import { DataTable, type Column } from '@/components/DataTable';
 import { Pagination } from '@/components/Pagination';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ExtensionManager } from '@/components/ExtensionManager';
 import { examStatusColor, examStatusText, formatDateTime, questionTypeText } from '@/utils/format';
 import { EXAM_STATUS } from '@/constants';
 import type { Exam, ExamRecord, Question } from '@/types';
@@ -27,6 +30,7 @@ function ExamDetail() {
   const [recordsTotal, setRecordsTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [starting, setStarting] = useState(false);
+  const [myExtension, setMyExtension] = useState<MyExtension | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -47,8 +51,14 @@ function ExamDetail() {
       const res = await recordApi.listByExam(id, { page, page_size: 10 });
       setRecords(res.list);
       setRecordsTotal(res.total);
+    } else if (isStudent) {
+      try {
+        setMyExtension(await extensionApi.mine(id));
+      } catch {
+        setMyExtension(null);
+      }
     }
-  }, [id, canManage, page]);
+  }, [id, canManage, isStudent, page]);
 
   useEffect(() => {
     load();
@@ -72,6 +82,8 @@ function ExamDetail() {
   const recordColumns: Column<ExamRecord>[] = [
     { key: 'student_name', title: '学生', render: (r) => <span>{r.student_name}</span> },
     { key: 'status', title: '状态', render: (r) => <StatusBadge text={r.status === 'graded' ? '已批改' : r.status === 'submitted' ? '已提交' : '答题中'} color={r.status === 'graded' ? 'green' : r.status === 'submitted' ? 'blue' : 'orange'} /> },
+    { key: 'extra_minutes', title: '补时', render: (r) => r.extra_minutes > 0 ? <span className="font-medium text-brand-700">+{r.extra_minutes}分</span> : <span className="text-gray-300">-</span> },
+    { key: 'deadline_at', title: '个人截止', render: (r) => r.extra_minutes > 0 ? <span className="text-xs text-brand-700">{formatDateTime(r.deadline_at || r.personal_end_at)}</span> : <span className="text-xs text-gray-400">{formatDateTime(r.deadline_at || r.personal_end_at)}</span> },
     { key: 'objective_score', title: '客观题分', render: (r) => <span>{r.objective_score}</span> },
     { key: 'final_score', title: '最终分', render: (r) => <span className="font-medium">{r.final_score || '-'}</span> },
     { key: 'cheat_count', title: '切屏次数', render: (r) => <span className={r.cheat_count > 0 ? 'text-red-600' : ''}>{r.cheat_count}</span> },
@@ -120,6 +132,17 @@ function ExamDetail() {
         </div>
       </div>
 
+      {isStudent && myExtension && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50 px-5 py-3 text-sm text-brand-800">
+          <p className="font-medium">你已获得本场考试个别延时 +{myExtension.extra_minutes} 分钟</p>
+          <p className="mt-1 text-xs text-brand-700">
+            个人总时长 {myExtension.duration_min} 分钟 · 个人截止时间
+            {' '}{formatDateTime(myExtension.has_in_progress && myExtension.deadline_at ? myExtension.deadline_at : myExtension.personal_end_at)}
+            ，开考与收卷按你的个人截止时间执行，不影响其他考生。
+          </p>
+        </div>
+      )}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="font-semibold text-gray-800">试卷题目（{exam.questions.length} 题）</h2>
         <div className="mt-3 space-y-2">
@@ -135,6 +158,10 @@ function ExamDetail() {
           })}
         </div>
       </section>
+
+      {canManage && (
+        <ExtensionManager exam={exam} />
+      )}
 
       {canManage && (
         <section className="rounded-xl border border-gray-200 bg-white p-5">

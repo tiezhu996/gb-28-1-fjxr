@@ -19,8 +19,8 @@ type AnswerInput struct {
 
 // SubmitRecordRequest 提交答卷请求。
 type SubmitRecordRequest struct {
-	Answers    []AnswerInput `json:"answers" binding:"required,min=1"`
-	CheatCount int           `json:"cheat_count" binding:"omitempty,min=0,max=1000"`
+	Answers     []AnswerInput     `json:"answers" binding:"required,min=1"`
+	CheatCount  int               `json:"cheat_count" binding:"omitempty,min=0,max=1000"`
 	CheatEvents []CheatEventInput `json:"cheat_events"`
 }
 
@@ -63,40 +63,49 @@ type ExamReportItem struct {
 
 // ExamReport 成绩分析报告。
 type ExamReport struct {
-	ExamID          string            `json:"exam_id"`
-	ExamTitle       string            `json:"exam_title"`
-	TotalStudents   int               `json:"total_students"`
-	AverageScore    float64           `json:"average_score"`
-	MaxScore        float64           `json:"max_score"`
-	MinScore        float64           `json:"min_score"`
-	PassRate        float64           `json:"pass_rate"`
-	ScoreBands      map[string]int    `json:"score_bands"` // 分数段直方图
-	QuestionReports []ExamReportItem  `json:"question_reports"`
+	ExamID          string           `json:"exam_id"`
+	ExamTitle       string           `json:"exam_title"`
+	TotalStudents   int              `json:"total_students"`
+	AverageScore    float64          `json:"average_score"`
+	MaxScore        float64          `json:"max_score"`
+	MinScore        float64          `json:"min_score"`
+	PassRate        float64          `json:"pass_rate"`
+	ScoreBands      map[string]int   `json:"score_bands"` // 分数段直方图
+	QuestionReports []ExamReportItem `json:"question_reports"`
 }
 
 // RecordResponse 考试记录响应。
 type RecordResponse struct {
-	ID              string                    `json:"id"`
-	ExamID          string                    `json:"exam_id"`
-	ExamTitle       string                    `json:"exam_title"`
-	StudentID       string                    `json:"student_id"`
-	StudentName     string                    `json:"student_name"`
-	Status          string                    `json:"status"`
-	StartedAt       time.Time                 `json:"started_at"`
-	SubmittedAt     *time.Time                `json:"submitted_at"`
-	ObjectiveScore  float64                   `json:"objective_score"`
-	SubjectiveScore float64                   `json:"subjective_score"`
-	FinalScore      float64                   `json:"final_score"`
-	PassScore       float64                   `json:"pass_score"`
-	CheatCount      int                       `json:"cheat_count"`
-	AutoSubmitted   bool                      `json:"auto_submitted"`
-	Questions       []model.AttemptQuestion   `json:"questions"`
-	CreatedAt       time.Time                 `json:"created_at"`
+	ID              string                  `json:"id"`
+	ExamID          string                  `json:"exam_id"`
+	ExamTitle       string                  `json:"exam_title"`
+	StudentID       string                  `json:"student_id"`
+	StudentName     string                  `json:"student_name"`
+	Status          string                  `json:"status"`
+	StartedAt       time.Time               `json:"started_at"`
+	SubmittedAt     *time.Time              `json:"submitted_at"`
+	ObjectiveScore  float64                 `json:"objective_score"`
+	SubjectiveScore float64                 `json:"subjective_score"`
+	FinalScore      float64                 `json:"final_score"`
+	PassScore       float64                 `json:"pass_score"`
+	CheatCount      int                     `json:"cheat_count"`
+	AutoSubmitted   bool                    `json:"auto_submitted"`
+	Questions       []model.AttemptQuestion `json:"questions"`
+	// 个别考生补时：补时分钟、含补时的个人总时长与个人截止时间（无补时时 ExtraMinutes=0）。
+	ExtraMinutes  int       `json:"extra_minutes"`
+	DurationMin   int       `json:"duration_min"`
+	DeadlineAt    time.Time `json:"deadline_at"`
+	PersonalEndAt time.Time `json:"personal_end_at"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
-// ToRecordResponse 模型转响应。
-func ToRecordResponse(r *model.ExamRecord) RecordResponse {
-	return RecordResponse{
+// ToRecordResponse 模型转响应。personalDuration 为含补时的个人总时长（由 service 结合试卷时长传入）。
+func ToRecordResponse(r *model.ExamRecord, personalDuration ...int) RecordResponse {
+	durationMin := 0
+	if len(personalDuration) > 0 {
+		durationMin = personalDuration[0]
+	}
+	resp := RecordResponse{
 		ID:              r.ID.Hex(),
 		ExamID:          r.ExamID.Hex(),
 		ExamTitle:       r.ExamTitle,
@@ -111,6 +120,10 @@ func ToRecordResponse(r *model.ExamRecord) RecordResponse {
 		CheatCount:      r.CheatCount,
 		AutoSubmitted:   r.AutoSubmitted,
 		Questions:       r.Questions,
+		ExtraMinutes:    r.ExtraMinutes,
+		DurationMin:     durationMin,
+		DeadlineAt:      r.DeadlineAt,
 		CreatedAt:       r.CreatedAt,
 	}
+	return resp
 }

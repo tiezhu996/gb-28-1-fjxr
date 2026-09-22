@@ -128,6 +128,18 @@ func UserStatusText(s string) string {
 	return "已禁用"
 }
 
+// ExtensionStatusText 补时记录状态枚举 → 中文文本（active/revoked）。
+func ExtensionStatusText(s string) string {
+	switch s {
+	case constants.ExtensionStatusActive:
+		return "有效"
+	case constants.ExtensionStatusRevoked:
+		return "已撤销"
+	default:
+		return "未知状态"
+	}
+}
+
 // ScoreBandText 分数段标签（成绩分析直方图）。
 func ScoreBandText(band int) string {
 	switch band {

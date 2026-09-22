@@ -8,6 +8,7 @@ frontend/.next/
 frontend/out/
 frontend/.env.local
 frontend/npm-debug.log*
+frontend/tsconfig.tsbuildinfo
 
 # 环境文件（保留 .env.example，忽略 .env）
 .env

@@ -21,14 +21,37 @@ import (
 
 // ExamRecordService 考试记录服务：开始考试、提交/自动提交、阅卷、成绩分析。
 type ExamRecordService struct {
-	repo   repository.ExamRecordRepository
-	exam   *ExamService // 复用试卷服务（校验考试窗口）
-	logger *slog.Logger
+	repo      repository.ExamRecordRepository
+	extension repository.ExamExtensionRepository // 个别考生补时（setter 注入，避免循环依赖）
+	exam      *ExamService                       // 复用试卷服务（校验考试窗口）
+	logger    *slog.Logger
 }
 
 // NewExamRecordService 构造考试记录服务。
 func NewExamRecordService(repo repository.ExamRecordRepository, exam *ExamService, logger *slog.Logger) *ExamRecordService {
 	return &ExamRecordService{repo: repo, exam: exam, logger: logger}
+}
+
+// SetExtensionRepo 注入补时仓储（main 装配时调用；缺省时按无补时处理）。
+func (s *ExamRecordService) SetExtensionRepo(repo repository.ExamExtensionRepository) {
+	s.extension = repo
+}
+
+// activeExtensionMinutes 返回某考生在某场考试的有效补时分钟数（无补时/仓储未注入时为 0）。
+func (s *ExamRecordService) activeExtensionMinutes(ctx context.Context, examID, studentID primitive.ObjectID) int {
+	if s.extension == nil {
+		return 0
+	}
+	ext, err := s.extension.FindActive(ctx, examID, studentID)
+	if err != nil || ext == nil {
+		return 0
+	}
+	return ext.ExtraMinutes
+}
+
+// PersonalDeadline 计算某条进行中记录的个人截止时间：开考时间 + (试卷时长 + 补时) 分钟。
+func PersonalDeadline(startedAt time.Time, durationMin, extraMinutes int) time.Time {
+	return startedAt.Add(time.Duration(durationMin+extraMinutes) * time.Minute)
 }
 
 // StartExam 学生开始考试：校验时间窗口、生成随机题序/选项快照。
@@ -96,6 +119,9 @@ func (s *ExamRecordService) StartExam(ctx context.Context, examID, studentID pri
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
+	// 个别考生补时快照：开考按个人截止时间，补时分钟来自有效补时记录。
+	rec.ExtraMinutes = s.activeExtensionMinutes(ctx, exam.ID, studentID)
+	rec.DeadlineAt = PersonalDeadline(now, exam.DurationMin, rec.ExtraMinutes)
 	if err := s.repo.Create(ctx, rec); err != nil {
 		return nil, fmt.Errorf("exam record service start: %w", err)
 	}
@@ -160,6 +186,21 @@ func (s *ExamRecordService) Submit(ctx context.Context, recordID primitive.Objec
 	}
 	if rec.Status != constants.RecordStatusInProgress {
 		return nil, util.NewAppError(constants.CodeRecordAlreadyDone, fmt.Sprintf(constants.MsgRecordStatusInvalid, rec.Status))
+	}
+	// 收卷按个人截止时间（含个别考生补时）：已过个人截止时间则拒绝手动提交，由定时任务自动交卷。
+	if !auto {
+		exam, examErr := s.exam.GetByID(ctx, rec.ExamID)
+		if examErr != nil {
+			return nil, examErr
+		}
+		deadline := rec.DeadlineAt
+		if deadline.IsZero() {
+			// 兼容历史记录（无补时快照）：按试卷时长兜底计算
+			deadline = PersonalDeadline(rec.StartedAt, exam.DurationMin, rec.ExtraMinutes)
+		}
+		if time.Now().After(deadline) {
+			return nil, util.NewAppError(constants.CodeRecordExpired, constants.MsgRecordExpired)
+		}
 	}
 	answerMap := make(map[string]string, len(answers))
 	for _, a := range answers {
@@ -269,6 +310,49 @@ func (s *ExamRecordService) GetByID(ctx context.Context, id primitive.ObjectID) 
 	return rec, nil
 }
 
+// BuildResponse 组装含个人总时长与个人截止时间的记录响应（补时分钟来自记录快照）。
+// 考试详情、倒计时与个人记录均通过该响应显示补时分钟与截止时间，刷新后保持一致。
+func (s *ExamRecordService) BuildResponse(ctx context.Context, rec *model.ExamRecord) dto.RecordResponse {
+	durationMin := 0
+	personalEnd := rec.DeadlineAt
+	if exam, err := s.exam.GetByID(ctx, rec.ExamID); err == nil {
+		durationMin = exam.DurationMin + rec.ExtraMinutes
+		// 已交卷或已有快照优先快照；未开考/历史记录兜底用开始时间 + 个人总时长。
+		if personalEnd.IsZero() {
+			personalEnd = PersonalDeadline(rec.StartedAt, exam.DurationMin, rec.ExtraMinutes)
+		}
+	}
+	resp := dto.ToRecordResponse(rec, durationMin)
+	resp.PersonalEndAt = personalEnd
+	if !rec.DeadlineAt.IsZero() {
+		resp.DeadlineAt = rec.DeadlineAt
+	}
+	return resp
+}
+
+// SyncExtensionSnapshot 补时登记/撤销后，同步该考生进行中答卷的补时快照与个人截止时间。
+// 已交卷记录不受影响（原有阅卷与成绩流程保留）。
+func (s *ExamRecordService) SyncExtensionSnapshot(ctx context.Context, examID, studentID primitive.ObjectID, extraMinutes int) error {
+	rec, err := s.repo.FindActiveByExamAndStudent(ctx, examID, studentID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil // 尚未开考，快照将在 StartExam 时生成
+		}
+		return fmt.Errorf("exam record service sync extension find: %w", err)
+	}
+	exam, err := s.exam.GetByID(ctx, examID)
+	if err != nil {
+		return err
+	}
+	rec.ExtraMinutes = extraMinutes
+	rec.DeadlineAt = PersonalDeadline(rec.StartedAt, exam.DurationMin, extraMinutes)
+	rec.UpdatedAt = time.Now()
+	if err := s.repo.Update(ctx, rec); err != nil {
+		return fmt.Errorf("exam record service sync extension update: %w", err)
+	}
+	return nil
+}
+
 // Report 生成成绩分析报告（平均分/最高/最低/及格率/分数段/每题正确率）。
 func (s *ExamRecordService) Report(ctx context.Context, examID primitive.ObjectID) (*dto.ExamReport, error) {
 	exam, err := s.exam.GetByID(ctx, examID)
@@ -280,9 +364,9 @@ func (s *ExamRecordService) Report(ctx context.Context, examID primitive.ObjectI
 		return nil, fmt.Errorf("exam record service report: %w", err)
 	}
 	report := &dto.ExamReport{
-		ExamID:       examID.Hex(),
-		ExamTitle:    exam.Title,
-		ScoreBands:   map[string]int{"0-59": 0, "60-69": 0, "70-79": 0, "80-89": 0, "90-100": 0},
+		ExamID:          examID.Hex(),
+		ExamTitle:       exam.Title,
+		ScoreBands:      map[string]int{"0-59": 0, "60-69": 0, "70-79": 0, "80-89": 0, "90-100": 0},
 		QuestionReports: make([]dto.ExamReportItem, 0, len(exam.Questions)),
 	}
 	if len(recs) == 0 {
@@ -361,7 +445,15 @@ func (s *ExamRecordService) AutoSubmitExpired(ctx context.Context, now time.Time
 		if err != nil {
 			continue
 		}
-		deadline := r.StartedAt.Add(time.Duration(exam.DurationMin) * time.Minute)
+		// 收卷按个人截止时间：优先使用记录上的补时快照，缺失时实时查有效补时记录。
+		deadline := r.DeadlineAt
+		if deadline.IsZero() {
+			extra := r.ExtraMinutes
+			if extra == 0 {
+				extra = s.activeExtensionMinutes(ctx, r.ExamID, r.StudentID)
+			}
+			deadline = PersonalDeadline(r.StartedAt, exam.DurationMin, extra)
+		}
 		if now.After(deadline) {
 			if _, err := s.Submit(ctx, r.ID, nil, r.CheatCount, nil, true); err == nil {
 				count++

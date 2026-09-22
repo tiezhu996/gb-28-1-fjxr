@@ -84,6 +84,21 @@ const (
 	WrongBookStatusResolved = "resolved" // 已掌握
 )
 
+// 补时记录状态枚举（TimeExtensionStatus）。
+// 出现位置：model/exam_extension.go、dto/exam_extension.go、service/exam_extension_service.go、
+// handler/exam_extension_handler.go、constants/error_codes.go、constants/log_templates.go、
+// util/formatters.go、migrations/indexes.go、前端 src/constants/index.ts、src/utils/format.ts。
+const (
+	ExtensionStatusActive  = "active"  // 有效（开考前可撤销，开考后冻结）
+	ExtensionStatusRevoked = "revoked" // 已撤销（仅开考前）
+)
+
+// 补时分钟数上下限（业务规则：补时限于五至六十分钟）。
+const (
+	ExtensionMinMinutes = 5
+	ExtensionMaxMinutes = 60
+)
+
 // 审计操作动作枚举（AuditAction）。
 const (
 	AuditActionCreate  = "create"
@@ -162,6 +177,16 @@ func IsValidAnswerResult(r string) bool {
 		return true
 	}
 	return false
+}
+
+// IsValidExtensionStatus 校验补时记录状态是否合法。
+func IsValidExtensionStatus(s string) bool {
+	return s == ExtensionStatusActive || s == ExtensionStatusRevoked
+}
+
+// IsValidExtensionMinutes 校验补时分钟数是否落在 5~60 分钟区间（含边界）。
+func IsValidExtensionMinutes(min int) bool {
+	return min >= ExtensionMinMinutes && min <= ExtensionMaxMinutes
 }
 
 // IsObjectiveQuestion 判断是否客观题（自动阅卷）。

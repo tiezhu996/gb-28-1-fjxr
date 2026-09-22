@@ -5,7 +5,7 @@ import { useCountdown } from '@/hooks/useCountdown';
 import { recordApi, type AnswerInput } from '@/api/record';
 import { examApi } from '@/api/exam';
 import { QuestionTypeBadge } from '@/components/StatusBadge';
-import { questionTypeText } from '@/utils/format';
+import { formatDateTime, questionTypeText } from '@/utils/format';
 import type { Exam, ExamRecord } from '@/types';
 
 function ExamTake() {
@@ -98,7 +98,13 @@ function ExamTake() {
 
   const endAt = useMemo(() => {
     if (!record) return 0;
-    const duration = exam?.duration_min ?? 60;
+    // 开考与收卷按个人截止时间：优先使用后端记录上的补时快照 deadline_at，
+    // 缺失时按开始时间 + 个人总时长（含补时）兜底，保证刷新后倒计时一致。
+    if (record.deadline_at) {
+      const t = new Date(record.deadline_at).getTime();
+      if (!Number.isNaN(t)) return t;
+    }
+    const duration = record.duration_min ?? exam?.duration_min ?? 60;
     return new Date(record.started_at).getTime() + duration * 60 * 1000;
   }, [record, exam]);
 
@@ -168,6 +174,11 @@ function ExamTake() {
           <div>
             <h1 className="font-bold text-gray-800">{record.exam_title}</h1>
             <p className="text-xs text-gray-400">共 {record.questions.length} 题 · 已答 {answeredCount} 题</p>
+            {record.extra_minutes > 0 && (
+              <p className="mt-0.5 text-xs font-medium text-brand-700">
+                已获个别延时 +{record.extra_minutes} 分钟 · 个人截止 {formatDateTime(record.deadline_at)}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {warn5 && <span className="text-sm font-medium text-red-600">⚠️ 剩余不足 5 分钟</span>}
