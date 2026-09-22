@@ -55,6 +55,8 @@ type ExamRecord struct {
 	CheatCount    int                `bson:"cheat_count" json:"cheat_count"`
 	CheatEvents   []CheatEvent       `bson:"cheat_events,omitempty" json:"cheat_events"`
 	AutoSubmitted bool               `bson:"auto_submitted" json:"auto_submitted"`
+	ExtraMinutes  int                `bson:"extra_minutes" json:"extra_minutes"` // 个别考生补时分钟快照（0 表示无补时）
+	DeadlineAt    *time.Time         `bson:"deadline_at,omitempty" json:"deadline_at"` // 个人收卷截止时间（含补时；空值按 started_at+duration 兼容旧记录）
 	CreatedAt     time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt     time.Time          `bson:"updated_at" json:"updated_at"`
 }

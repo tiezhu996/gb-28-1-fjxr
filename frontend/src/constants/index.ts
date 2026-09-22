@@ -76,6 +76,18 @@ export const QUESTION_STATUS = {
   PUBLISHED: 'published',
 } as const;
 
+// 个别考生补时记录状态（与后端 constants.TimeExtensionStatusActive/Revoked 对应）
+export const TIME_EXTENSION_STATUS = {
+  ACTIVE: 'active',
+  REVOKED: 'revoked',
+} as const;
+
+export type TimeExtensionStatus = (typeof TIME_EXTENSION_STATUS)[keyof typeof TIME_EXTENSION_STATUS];
+
+// 补时分钟数限定 5~60（与后端 constants.TimeExtensionMinMinutes/MaxMinutes 对应）
+export const TIME_EXTENSION_MIN_MINUTES = 5;
+export const TIME_EXTENSION_MAX_MINUTES = 60;
+
 export const SUBJECTS = ['计算机基础', '数学', '语文', '英语', '物理', '化学', '生物', '历史', '政治', '地理'];
 
 export const DEFAULT_KNOWLEDGE_POINTS = ['数据结构', '代数', '几何', '文言文', '阅读理解', '词汇', '力学', '电学', '化学平衡', '遗传学'];

@@ -87,6 +87,11 @@ function Review() {
             学生 {record.student_name} · 客观题 {record.objective_score} 分 · 最终 {record.final_score || '-'} 分 · 切屏 {record.cheat_count} 次
           </p>
           <p className="text-xs text-gray-400">开始 {formatDateTime(record.started_at)}</p>
+          {record.extra_minutes > 0 && (
+            <p className="mt-0.5 text-xs font-medium text-emerald-600">
+              已补时 {record.extra_minutes} 分钟{record.deadline_at ? ` · 个人截止 ${formatDateTime(record.deadline_at)}` : ''}
+            </p>
+          )}
         </div>
         <StatusBadge text={recordStatusText(record.status)} color={recordStatusColor(record.status)} />
       </div>

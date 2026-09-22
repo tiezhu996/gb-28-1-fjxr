@@ -46,6 +46,10 @@ const (
 	LogWrongBookAdded    = "错题加入错题本 student=%s question_id=%s"
 	LogWrongBookResolved = "错题标记为已掌握 student=%s question_id=%s"
 
+	// 个别考生补时模块（补时状态 active/revoked，分钟限定 5~60，一场考试仅一条有效记录）
+	LogTimeExtensionGranted = "个别考生补时登记成功 exam_id=%s student=%s extra_minutes=%d operator=%s"
+	LogTimeExtensionRevoked = "个别考生补时记录撤销 extension_id=%s exam_id=%s student=%s operator=%s"
+
 	// 审计模块
 	LogAuditCreated = "审计日志写入成功 module=%s action=%s user=%s"
 )

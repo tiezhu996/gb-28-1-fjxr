@@ -33,4 +33,14 @@ const (
 	MsgRecordStatusInvalid = "考试记录模块：状态字段 %s 非法，无法执行该操作"
 	MsgRecordExpired       = "考试记录模块：考试时长已超时"
 	MsgWrongBookExists     = "错题本模块：question_id=%s 已在错题本中"
+
+	// 个别考生补时模块文案（错误提示由 service/handler 拼接实体名、字段名、角色名）
+	MsgExtensionGrantSuccess   = "补时登记成功"
+	MsgExtensionRevokeSuccess  = "补时记录已撤销"
+	MsgExtensionNotFound       = "补时模块：id=%s 的补时记录不存在"
+	MsgExtensionExists         = "补时模块：学生 id=%s 在试卷 id=%s 已存在有效补时记录，一场考试仅允许一条"
+	MsgExtensionMinutesInvalid = "补时模块：补时分钟字段 %d 非法，必须在 %d~%d 分钟之间"
+	MsgExtensionReasonEmpty    = "补时模块：原因字段不能为空，交卷前须登记补时原因"
+	MsgExtensionFrozen         = "补时模块：考试已开考，补时记录冻结不可撤销或修改"
+	MsgExtensionStudentInvalid = "补时模块：学生 id=%s 不存在或角色不是学生"
 )

@@ -59,13 +59,17 @@ func main() {
 	questionRepo := repository.NewMongoQuestionRepository(db.DB)
 	examRepo := repository.NewMongoExamRepository(db.DB)
 	recordRepo := repository.NewMongoExamRecordRepository(db.DB)
+	extensionRepo := repository.NewMongoTimeExtensionRepository(db.DB)
 	wrongBookRepo := repository.NewMongoWrongBookRepository(db.DB)
 	auditRepo := repository.NewMongoAuditRepository(db.DB)
 
 	userSvc := service.NewUserService(userRepo, util.Logger, cfg)
 	questionSvc := service.NewQuestionService(questionRepo, util.Logger)
 	examSvc := service.NewExamService(examRepo, questionSvc, util.Logger)
-	recordSvc := service.NewExamRecordService(recordRepo, examSvc, util.Logger)
+	// 补时服务先以 nil 的进行中答卷查询器构造，recordSvc 创建后回填（二者接口解耦，无循环依赖）
+	extensionSvc := service.NewTimeExtensionService(extensionRepo, examRepo, userRepo, nil, util.Logger)
+	recordSvc := service.NewExamRecordService(recordRepo, examSvc, extensionSvc, util.Logger)
+	extensionSvc.SetActiveRecordLookup(recordSvc)
 	wrongBookSvc := service.NewWrongBookService(wrongBookRepo, questionSvc, recordSvc, util.Logger)
 	auditSvc := service.NewAuditService(auditRepo, util.Logger)
 
@@ -76,12 +80,13 @@ func main() {
 	}
 
 	hs := &router.Handlers{
-		User:       handler.NewUserHandler(userSvc, util.Logger),
-		Question:   handler.NewQuestionHandler(questionSvc, util.Logger),
-		Exam:       handler.NewExamHandler(examSvc, util.Logger),
-		ExamRecord: handler.NewExamRecordHandler(recordSvc, util.Logger),
-		WrongBook:  handler.NewWrongBookHandler(wrongBookSvc, util.Logger),
-		Audit:      handler.NewAuditHandler(auditSvc, util.Logger),
+		User:          handler.NewUserHandler(userSvc, util.Logger),
+		Question:      handler.NewQuestionHandler(questionSvc, util.Logger),
+		Exam:          handler.NewExamHandler(examSvc, extensionSvc, util.Logger),
+		ExamRecord:    handler.NewExamRecordHandler(recordSvc, util.Logger),
+		TimeExtension: handler.NewTimeExtensionHandler(extensionSvc, util.Logger),
+		WrongBook:     handler.NewWrongBookHandler(wrongBookSvc, util.Logger),
+		Audit:         handler.NewAuditHandler(auditSvc, util.Logger),
 	}
 
 	engine := gin.New()

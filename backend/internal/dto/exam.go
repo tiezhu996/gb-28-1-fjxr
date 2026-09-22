@@ -92,9 +92,12 @@ type ExamResponse struct {
 	ShuffleQuestion bool                   `json:"shuffle_question"`
 	ShuffleOption   bool                   `json:"shuffle_option"`
 	Questions       []ExamQuestionResponse `json:"questions"`
-	CreatedBy       string                 `json:"created_by"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
+	// TimeExtensions 个别考生补时记录：教师/管理员可见本场全部（含已撤销），
+	// 学生仅可见本人有效记录；由 handler 结合角色填充。
+	TimeExtensions []TimeExtensionResponse `json:"time_extensions"`
+	CreatedBy      string                  `json:"created_by"`
+	CreatedAt      time.Time               `json:"created_at"`
+	UpdatedAt      time.Time               `json:"updated_at"`
 }
 
 // ToExamResponse 模型转响应。
@@ -112,6 +115,7 @@ func ToExamResponse(e *model.Exam) ExamResponse {
 		Status:          e.Status,
 		ShuffleQuestion: e.ShuffleQuestion,
 		ShuffleOption:   e.ShuffleOption,
+		TimeExtensions:  []TimeExtensionResponse{},
 		CreatedBy:       e.CreatedBy.Hex(),
 		CreatedAt:       e.CreatedAt,
 		UpdatedAt:       e.UpdatedAt,

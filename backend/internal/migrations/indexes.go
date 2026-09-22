@@ -25,6 +25,10 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database) error {
 		{"exams", bson.D{{Key: "status", Value: 1}, {Key: "subject", Value: 1}}, nil},
 		{"exam_records", bson.D{{Key: "exam_id", Value: 1}, {Key: "student_id", Value: 1}}, nil},
 		{"exam_records", bson.D{{Key: "status", Value: 1}}, nil},
+		// 补时记录：仅对有效（active）记录建立 (exam_id, student_id) 部分唯一索引，
+		// 从数据库层保证“一名考生一场考试仅一条有效补时记录”，并兜底重复/并发登记请求。
+		{"time_extensions", bson.D{{Key: "exam_id", Value: 1}, {Key: "student_id", Value: 1}}, options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{"status": "active"})},
+		{"time_extensions", bson.D{{Key: "exam_id", Value: 1}, {Key: "created_at", Value: -1}}, nil},
 		{"wrong_books", bson.D{{Key: "student_id", Value: 1}, {Key: "question_id", Value: 1}}, options.Index().SetUnique(true)},
 		{"audit_logs", bson.D{{Key: "created_at", Value: -1}}, nil},
 		{"audit_logs", bson.D{{Key: "module", Value: 1}, {Key: "action", Value: 1}}, nil},

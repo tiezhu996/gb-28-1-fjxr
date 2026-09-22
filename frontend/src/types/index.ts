@@ -50,6 +50,21 @@ export interface ExamQuestion {
   order: number;
 }
 
+export interface TimeExtension {
+  id: string;
+  exam_id: string;
+  exam_title: string;
+  student_id: string;
+  student_name: string;
+  extra_minutes: number;
+  reason: string;
+  status: string; // active / revoked
+  deadline_at?: string | null; // 个人截止时间（含补时）
+  granted_by_name: string;
+  revoked_at?: string | null;
+  created_at: string;
+}
+
 export interface Exam {
   id: string;
   title: string;
@@ -64,6 +79,7 @@ export interface Exam {
   shuffle_question: boolean;
   shuffle_option: boolean;
   questions: ExamQuestion[];
+  time_extensions: TimeExtension[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -101,6 +117,8 @@ export interface ExamRecord {
   pass_score: number;
   cheat_count: number;
   auto_submitted: boolean;
+  extra_minutes: number; // 个别考生补时分钟（0 表示无补时）
+  deadline_at?: string | null; // 个人收卷截止时间（含补时）
   questions: AttemptQuestion[];
   created_at: string;
 }

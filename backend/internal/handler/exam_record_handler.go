@@ -44,6 +44,7 @@ func (h *ExamRecordHandler) Start(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadline(c.Request.Context(), rec)
 	Success(c, dto.ToRecordResponse(rec))
 }
 
@@ -64,6 +65,7 @@ func (h *ExamRecordHandler) Submit(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadline(c.Request.Context(), rec)
 	SuccessMessage(c, constants.MsgRecordSubmitSuccess, dto.ToRecordResponse(rec))
 }
 
@@ -79,6 +81,7 @@ func (h *ExamRecordHandler) AutoSubmit(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadline(c.Request.Context(), rec)
 	Success(c, dto.ToRecordResponse(rec))
 }
 
@@ -99,6 +102,7 @@ func (h *ExamRecordHandler) Grade(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadline(c.Request.Context(), rec)
 	SuccessMessage(c, constants.MsgRecordGradedSuccess, dto.ToRecordResponse(rec))
 }
 
@@ -114,6 +118,7 @@ func (h *ExamRecordHandler) Get(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadline(c.Request.Context(), rec)
 	Success(c, dto.ToRecordResponse(rec))
 }
 
@@ -129,6 +134,7 @@ func (h *ExamRecordHandler) ListMine(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadlines(c.Request.Context(), list)
 	items := make([]dto.RecordResponse, 0, len(list))
 	for _, r := range list {
 		items = append(items, dto.ToRecordResponse(r))
@@ -153,6 +159,7 @@ func (h *ExamRecordHandler) ListByExam(c *gin.Context) {
 		Error(c, err)
 		return
 	}
+	h.svc.FillDeadlines(c.Request.Context(), list)
 	items := make([]dto.RecordResponse, 0, len(list))
 	for _, r := range list {
 		items = append(items, dto.ToRecordResponse(r))

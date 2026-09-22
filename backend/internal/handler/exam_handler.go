@@ -17,13 +17,14 @@ import (
 
 // ExamHandler 试卷 HTTP 处理器。
 type ExamHandler struct {
-	svc    *service.ExamService
-	logger *slog.Logger
+	svc       *service.ExamService
+	extension *service.TimeExtensionService // 个别考生补时（详情页嵌入补时记录）
+	logger    *slog.Logger
 }
 
 // NewExamHandler 构造试卷处理器。
-func NewExamHandler(svc *service.ExamService, logger *slog.Logger) *ExamHandler {
-	return &ExamHandler{svc: svc, logger: logger}
+func NewExamHandler(svc *service.ExamService, extension *service.TimeExtensionService, logger *slog.Logger) *ExamHandler {
+	return &ExamHandler{svc: svc, extension: extension, logger: logger}
 }
 
 // Create 手动创建试卷。
@@ -106,7 +107,7 @@ func (h *ExamHandler) Close(c *gin.Context) {
 	Success(c, dto.ToExamResponse(exam))
 }
 
-// Get 查询单个试卷。
+// Get 查询单个试卷（详情按角色嵌入个别考生补时记录）。
 func (h *ExamHandler) Get(c *gin.Context) {
 	id, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -118,7 +119,22 @@ func (h *ExamHandler) Get(c *gin.Context) {
 		Error(c, err)
 		return
 	}
-	Success(c, dto.ToExamResponse(exam))
+	resp := dto.ToExamResponse(exam)
+	if h.extension != nil {
+		role := middleware.GetRole(c)
+		if role == constants.RoleTeacher || role == constants.RoleAdmin {
+			// 教师/管理员：考试详情展示本场全部补时记录（含已撤销）
+			if list, err := h.extension.ListByExam(c.Request.Context(), id); err == nil {
+				resp.TimeExtensions = list
+			}
+		} else {
+			// 学生：仅看到本人有效补时记录（补时分钟与个人截止时间）
+			if list, err := h.extension.ListMineByExam(c.Request.Context(), id, middleware.GetUserID(c)); err == nil {
+				resp.TimeExtensions = list
+			}
+		}
+	}
+	Success(c, resp)
 }
 
 // List 分页查询试卷。

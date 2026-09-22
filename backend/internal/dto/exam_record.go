@@ -90,6 +90,8 @@ type RecordResponse struct {
 	PassScore       float64                   `json:"pass_score"`
 	CheatCount      int                       `json:"cheat_count"`
 	AutoSubmitted   bool                      `json:"auto_submitted"`
+	ExtraMinutes    int                       `json:"extra_minutes"`           // 个别考生补时分钟（0 表示无补时）
+	DeadlineAt      *time.Time                `json:"deadline_at"`              // 个人收卷截止时间（含补时）
 	Questions       []model.AttemptQuestion   `json:"questions"`
 	CreatedAt       time.Time                 `json:"created_at"`
 }
@@ -110,7 +112,18 @@ func ToRecordResponse(r *model.ExamRecord) RecordResponse {
 		FinalScore:      r.FinalScore,
 		CheatCount:      r.CheatCount,
 		AutoSubmitted:   r.AutoSubmitted,
+		ExtraMinutes:    r.ExtraMinutes,
+		DeadlineAt:      r.DeadlineAt,
 		Questions:       r.Questions,
 		CreatedAt:       r.CreatedAt,
 	}
+}
+
+// EnsureRecordDeadline 填充答卷的个人截止时间：已有快照直接返回；
+// 旧记录（deadline_at 为空）按开始时间 + 考试时长兼容计算，保证刷新后倒计时一致。
+func EnsureRecordDeadline(r *model.ExamRecord, durationMin int) time.Time {
+	if r.DeadlineAt != nil {
+		return *r.DeadlineAt
+	}
+	return r.StartedAt.Add(time.Duration(durationMin) * time.Minute)
 }

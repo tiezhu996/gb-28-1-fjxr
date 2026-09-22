@@ -62,7 +62,10 @@ func TestWrongBookAddAndResolve(t *testing.T) {
 	questionRepo := newFakeQuestionRepo()
 	questionSvc := NewQuestionService(questionRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	recordRepo := newFakeRecordRepo()
-	recordSvc := NewExamRecordService(recordRepo, newTestExamSvc(), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	examSvc := newTestExamSvc()
+	extensionSvc := NewTimeExtensionService(newFakeExtensionRepo(), newFakeExamRepo(), newFakeUserRepo(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	recordSvc := NewExamRecordService(recordRepo, examSvc, extensionSvc, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	extensionSvc.SetActiveRecordLookup(recordSvc)
 	svc := NewWrongBookService(newFakeWrongBookRepo(), questionSvc, recordSvc, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	student := primitive.NewObjectID()

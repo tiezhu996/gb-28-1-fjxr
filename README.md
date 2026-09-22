@@ -29,10 +29,11 @@ docker compose up -d --build
 1. **题库管理**：单选/多选/判断/填空/简答五类题型，按学科、知识点、难度分类；支持 Excel 模板批量导入（`GET /questions/template` 下载模板）。
 2. **智能组卷**：手动选题或按学科 + 知识点覆盖 + 难度分布 + 题量自动组卷；支持设置总分、及格分、考试时长、开始/结束时间。
 3. **在线考试**：倒计时、题目导航快速跳转、标记稍后作答、最后 5 分钟提醒、时间到自动提交。
-4. **自动阅卷与评分**：客观题（单选/多选/判断）提交即自动判分；主观题（填空/简答）教师手动批改；系统汇总成绩生成成绩报告。
-5. **防作弊机制**：切屏/失焦/复制粘贴检测并记录次数与事件；支持随机打乱题目顺序与选项顺序；禁止复制粘贴。
-6. **成绩分析**：平均分、最高分、最低分、及格率、分数段直方图、每题正确率。
-7. **错题回顾**：查看答卷与正确答案对照，错题一键加入错题本，按知识点归类复习。
+4. **个别考生补时**：已发布试卷可为个别考生登记 5~60 分钟补时（交卷前登记分钟数与原因，一名考生一场考试仅一条有效记录）；开考/收卷按个人截止时间，其他考生不受影响；开考前可撤销，开考后冻结；试卷总分与标准答案不变。
+5. **自动阅卷与评分**：客观题（单选/多选/判断）提交即自动判分；主观题（填空/简答）教师手动批改；系统汇总成绩生成成绩报告。
+6. **防作弊机制**：切屏/失焦/复制粘贴检测并记录次数与事件；支持随机打乱题目顺序与选项顺序；禁止复制粘贴。
+7. **成绩分析**：平均分、最高分、最低分、及格率、分数段直方图、每题正确率。
+8. **错题回顾**：查看答卷与正确答案对照，错题一键加入错题本，按知识点归类复习。
 
 ## 技术栈
 
@@ -158,6 +159,8 @@ npm run dev                  # http://localhost:3000，/api 已代理到 localho
 | POST | /exams/:id/publish | 教师/管理员 | 发布试卷（draft→published） |
 | POST | /exams/:id/close | 教师/管理员 | 关闭试卷（→closed） |
 | DELETE | /exams/:id | 教师/管理员 | 删除试卷 |
+| POST | /exams/:id/time-extensions | 教师/管理员 | 个别考生补时登记（分钟 5~60 + 原因，交卷前） |
+| POST | /exam-time-extensions/:extId/revoke | 教师/管理员 | 撤销补时记录（仅开考前，开考后冻结） |
 | POST | /exam-records/:examId/start | 学生 | 开始考试（随机题序/选项） |
 | GET | /exam-records/mine | 学生 | 我的考试记录 |
 | POST | /exam-records/:id/submit | 学生 | 提交答卷（客观题自动判分） |
@@ -248,6 +251,10 @@ curl -sS http://localhost:3003/healthz
 ### 7. 错题本状态 WrongBookStatus（active / resolved）
 后端：`internal/constants/enums.go`、`internal/model/wrong_book.go`、`internal/dto/wrong_book.go`、`internal/service/wrong_book_service.go`、`internal/handler/wrong_book_handler.go`、`internal/constants/log_templates.go`、`internal/util/formatters.go`。
 前端：`src/constants/index.ts`、`src/app/wrongbook/page.tsx`。
+
+### 8. 补时记录状态 TimeExtensionStatus（active / revoked）+ 补时分钟常量（5~60）
+后端：`internal/constants/enums.go`、`internal/model/time_extension.go`、`internal/dto/time_extension.go`、`internal/service/time_extension_service.go`、`internal/repository/time_extension_repository.go`（部分唯一索引过滤）、`internal/handler/time_extension_handler.go`、`internal/constants/error_codes.go`、`internal/constants/log_templates.go`、`internal/constants/messages.go`、`internal/util/formatters.go`、`internal/migrations/indexes.go`。
+前端：`src/constants/index.ts`、`src/utils/format.ts`、`src/types/index.ts`、`src/api/timeExtension.ts`、`src/app/exams/detail/page.tsx`、`src/app/exam-take/page.tsx`、`src/app/records/page.tsx`、`src/app/records/review/page.tsx`。
 
 ## 屎山代码设计要求（跨文件协同改动能力验证）
 

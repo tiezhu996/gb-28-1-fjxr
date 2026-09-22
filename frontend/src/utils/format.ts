@@ -6,6 +6,7 @@ import {
   QUESTION_TYPES,
   RECORD_STATUS,
   ROLES,
+  TIME_EXTENSION_STATUS,
   USER_STATUS,
 } from '@/constants';
 
@@ -96,6 +97,22 @@ export function recordStatusColor(s: string): string {
     case RECORD_STATUS.IN_PROGRESS: return 'orange';
     case RECORD_STATUS.SUBMITTED: return 'blue';
     case RECORD_STATUS.GRADED: return 'green';
+    default: return 'gray';
+  }
+}
+
+export function timeExtensionStatusText(s: string): string {
+  switch (s) {
+    case TIME_EXTENSION_STATUS.ACTIVE: return '有效';
+    case TIME_EXTENSION_STATUS.REVOKED: return '已撤销';
+    default: return s;
+  }
+}
+
+export function timeExtensionStatusColor(s: string): string {
+  switch (s) {
+    case TIME_EXTENSION_STATUS.ACTIVE: return 'green';
+    case TIME_EXTENSION_STATUS.REVOKED: return 'gray';
     default: return 'gray';
   }
 }

@@ -47,17 +47,59 @@ func (f *fakeRecordRepo) FindActiveByExamAndStudent(_ context.Context, examID, s
 	}
 	return nil, repository.ErrNotFound
 }
-func (f *fakeRecordRepo) List(_ context.Context, _ bson.M, _, _ int64) ([]*model.ExamRecord, int64, error) {
+
+// matchRecordFilter 内存过滤：支持 exam_id / student_id / status（标量或 $in）。
+func matchRecordFilter(r *model.ExamRecord, filter bson.M) bool {
+	for k, v := range filter {
+		switch k {
+		case "exam_id":
+			if id, ok := v.(primitive.ObjectID); !ok || r.ExamID != id {
+				return false
+			}
+		case "student_id":
+			if id, ok := v.(primitive.ObjectID); !ok || r.StudentID != id {
+				return false
+			}
+		case "status":
+			switch sv := v.(type) {
+			case string:
+				if r.Status != sv {
+					return false
+				}
+			case bson.M:
+				if in, ok := sv["$in"].([]string); ok {
+					found := false
+					for _, s := range in {
+						if r.Status == s {
+							found = true
+							break
+						}
+					}
+					if !found {
+						return false
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
+func (f *fakeRecordRepo) List(_ context.Context, filter bson.M, _, _ int64) ([]*model.ExamRecord, int64, error) {
 	var out []*model.ExamRecord
 	for _, r := range f.records {
-		out = append(out, r)
+		if matchRecordFilter(r, filter) {
+			out = append(out, r)
+		}
 	}
 	return out, int64(len(out)), nil
 }
-func (f *fakeRecordRepo) ListAll(_ context.Context, _ bson.M) ([]*model.ExamRecord, error) {
+func (f *fakeRecordRepo) ListAll(_ context.Context, filter bson.M) ([]*model.ExamRecord, error) {
 	var out []*model.ExamRecord
 	for _, r := range f.records {
-		out = append(out, r)
+		if matchRecordFilter(r, filter) {
+			out = append(out, r)
+		}
 	}
 	return out, nil
 }
@@ -71,7 +113,10 @@ func newTestRecordSvc() *ExamRecordService {
 	examRepo := newFakeExamRepo()
 	examSvc := NewExamService(examRepo, questionSvc, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	recordRepo := newFakeRecordRepo()
-	return NewExamRecordService(recordRepo, examSvc, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	extensionSvc := NewTimeExtensionService(newFakeExtensionRepo(), examRepo, newFakeUserRepo(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	recordSvc := NewExamRecordService(recordRepo, examSvc, extensionSvc, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	extensionSvc.SetActiveRecordLookup(recordSvc)
+	return recordSvc
 }
 
 func TestStartAndSubmit(t *testing.T) {

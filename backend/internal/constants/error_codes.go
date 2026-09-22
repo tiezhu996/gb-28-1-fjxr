@@ -34,6 +34,12 @@ const (
 	CodeExamNotInWindow = 4003 // 不在考试时间窗口内
 	CodeExamNoQuestions = 4004 // 试卷未配置题目
 
+	// 个别考生补时模块（隶属试卷/考试 4xxx 段）
+	CodeExtensionExists     = 4005 // 该考生本场考试已有有效补时记录（重复/并发冲突）
+	CodeExtensionFrozen     = 4006 // 开考后补时记录冻结，不可撤销
+	CodeExtensionNotFound   = 4007 // 补时记录不存在
+	CodeExtensionBadRequest = 4008 // 补时参数非法（分钟越界/原因缺失/学生非法）
+
 	// 考试记录模块
 	CodeRecordNotFound    = 5001 // 考试记录不存在
 	CodeRecordStatusErr   = 5002 // 考试记录状态非法/不可提交
@@ -95,6 +101,14 @@ func ErrorCodeText(code int) string {
 		return "不在考试时间窗口内"
 	case CodeExamNoQuestions:
 		return "试卷未配置题目"
+	case CodeExtensionExists:
+		return "该考生本场考试已存在有效补时记录"
+	case CodeExtensionFrozen:
+		return "考试已开考，补时记录冻结不可撤销"
+	case CodeExtensionNotFound:
+		return "补时记录不存在"
+	case CodeExtensionBadRequest:
+		return "补时参数非法"
 	case CodeRecordNotFound:
 		return "考试记录不存在"
 	case CodeRecordStatusErr:
